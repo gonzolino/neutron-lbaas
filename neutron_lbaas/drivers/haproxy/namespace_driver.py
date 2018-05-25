@@ -157,7 +157,10 @@ class HaproxyNSDriver(agent_device_driver.AgentDeviceDriver):
                                              pid_file=pid_data)
         pm.disable()
         # unplug the ports
-        if loadbalancer_id in self.deployed_loadbalancers:
+        resync = kwargs.get('resync', False)
+        failover = cfg.CONF.allow_automatic_lbaas_agent_failover
+        if (loadbalancer_id in self.deployed_loadbalancers and
+                not (resync and failover)):
             self._unplug(namespace,
                          self.deployed_loadbalancers[loadbalancer_id].vip_port)
 
@@ -186,6 +189,7 @@ class HaproxyNSDriver(agent_device_driver.AgentDeviceDriver):
                    if lb_id not in known_loadbalancer_ids)
         for lb_id in orphans:
             if self.exists(lb_id):
+                # TODO(dgonzalez): Do we need to signal resync=True here too?
                 self.undeploy_instance(lb_id, cleanup_namespace=True)
 
     def get_stats(self, loadbalancer_id):
